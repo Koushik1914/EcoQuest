@@ -9,6 +9,10 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy static frontend files
 COPY . /usr/share/nginx/html/
 
+# Copy config injection script to run at container startup
+COPY inject-config.sh /docker-entrypoint.d/40-inject-config.sh
+RUN chmod +x /docker-entrypoint.d/40-inject-config.sh
+
 # Non-root nginx
 RUN chown -R nginx:nginx /usr/share/nginx/html \
     && chmod -R 755 /usr/share/nginx/html

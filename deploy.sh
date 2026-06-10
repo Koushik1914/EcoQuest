@@ -9,12 +9,13 @@ set -euo pipefail
 # ── Configuration — edit these before first deploy ───────────────────────────
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-ecoquest2}"
 REGION="${REGION:-asia-south1}"
-FIRESTORE_REGION="${FIRESTORE_REGION:-nam5}"
+FIRESTORE_REGION="${FIRESTORE_REGION:-asia-south1}"
 AR_REPO="ecoquest-registry"
 BACKEND_SERVICE="ecoquest-backend"
 FRONTEND_SERVICE="ecoquest-frontend"
 GCS_BUCKET="${PROJECT_ID}-ecoquest-uploads"
 SCHEDULER_JOB="ecoquest-challenge-rotation"
+GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "latest")
 
 # ── Colour helpers ────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
@@ -60,15 +61,30 @@ fi
 # Deploy indexes if file exists
 INDEXES_FILE="$(dirname "$0")/firestore.indexes.json"
 if [[ -f "${INDEXES_FILE}" ]]; then
-  info "Deploying Firestore composite indexes..."
-  gcloud firestore indexes composite list --project="${PROJECT_ID}" > /dev/null 2>&1 || true
-  # Use firebase-tools if available, otherwise skip (indexes deployed via Firebase CLI)
-  if command -v firebase &>/dev/null; then
-    firebase deploy --only firestore:indexes --project="${PROJECT_ID}" --non-interactive
-    success "Firestore indexes deployed."
-  else
-    warn "firebase CLI not found — deploy indexes manually: firebase deploy --only firestore:indexes"
-  fi
+  info "Deploying Firestore composite indexes via python script..."
+  python3 -c "
+import json, subprocess, sys
+with open('${INDEXES_FILE}') as f:
+    data = json.load(f)
+for idx in data.get('indexes', []):
+    cg = idx['collectionGroup']
+    fields = idx['fields']
+    cmd = ['gcloud', 'firestore', 'indexes', 'composite', 'create', '--project=' + sys.argv[1], '--collection-group=' + cg, '--async']
+    for field in fields:
+        path = field['fieldPath']
+        order = field['order'].lower()
+        cmd.append(f'--field-config=field-path={path},order={order}')
+    print(f'Requesting index for {cg}...')
+    res = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+    if res.returncode != 0:
+        if 'ALREADY_EXISTS' in res.stderr or 'already exists' in res.stderr:
+            print(f'Index for {cg} already exists — skipping.')
+        else:
+            print(f'Error requesting index for {cg}: {res.stderr.strip()}')
+    else:
+        print(f'Index creation requested for {cg}.')
+" "${PROJECT_ID}"
+  success "Firestore indexes request processed."
 fi
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -98,8 +114,6 @@ if ! gcloud storage buckets describe "gs://${GCS_BUCKET}" &>/dev/null; then
   gcloud storage buckets create "gs://${GCS_BUCKET}" \
     --location="${REGION}" \
     --project="${PROJECT_ID}"
-  gcloud storage buckets update "gs://${GCS_BUCKET}" \
-    --lifecycle-file=/dev/null 2>/dev/null || true
   success "GCS bucket created: ${GCS_BUCKET}"
 else
   warn "GCS bucket '${GCS_BUCKET}' already exists — skipping."
@@ -161,24 +175,22 @@ success "IAM roles bound to ${SA_EMAIL}"
 # STEP 7 — Cloud Build: Backend image
 # ══════════════════════════════════════════════════════════════════════════════
 info "STEP 7 — Building and pushing Docker images via Cloud Build..."
-BACKEND_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/backend:latest"
-FRONTEND_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/frontend:latest"
+BACKEND_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/backend:${GIT_SHA}"
+FRONTEND_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/frontend:${GIT_SHA}"
 
 gcloud builds submit backend/ \
   --tag="${BACKEND_IMAGE}" \
-  --project="${PROJECT_ID}" \
-  --region="${REGION}"
+  --project="${PROJECT_ID}"
 success "Backend image built: ${BACKEND_IMAGE}"
 
 # Frontend: Nginx-served static files
 gcloud builds submit frontend/ \
   --tag="${FRONTEND_IMAGE}" \
-  --project="${PROJECT_ID}" \
-  --region="${REGION}"
+  --project="${PROJECT_ID}"
 success "Frontend image built: ${FRONTEND_IMAGE}"
 
 # ══════════════════════════════════════════════════════════════════════════════
-# STEP 8 — Cloud Run: Deploy backend
+# STEP 8 — Cloud Run: Deploy backend & frontend
 # ══════════════════════════════════════════════════════════════════════════════
 info "STEP 8 — Deploying to Cloud Run..."
 
@@ -194,7 +206,8 @@ gcloud run deploy "${BACKEND_SERVICE}" \
   --concurrency=80 \
   --timeout=300 \
   --set-env-vars="GCP_PROJECT_ID=${PROJECT_ID},GCS_BUCKET_NAME=${GCS_BUCKET},ENVIRONMENT=production,FRONTEND_ORIGIN=https://${FRONTEND_SERVICE}-${PROJECT_ID}.a.run.app" \
-  --no-allow-unauthenticated \
+  --set-secrets="GEMINI_API_KEY=gemini-api-key:latest,INTERNAL_AUTH_TOKEN=ecoquest-internal-token:latest" \
+  --allow-unauthenticated \
   --project="${PROJECT_ID}" --quiet
 
 BACKEND_URL=$(gcloud run services describe "${BACKEND_SERVICE}" \
@@ -202,14 +215,7 @@ BACKEND_URL=$(gcloud run services describe "${BACKEND_SERVICE}" \
   --format="value(status.url)")
 success "Backend deployed: ${BACKEND_URL}"
 
-# Allow unauthenticated (frontend will call via CORS)
-gcloud run services add-iam-policy-binding "${BACKEND_SERVICE}" \
-  --region="${REGION}" \
-  --member="allUsers" \
-  --role="roles/run.invoker" \
-  --project="${PROJECT_ID}" --quiet
-
-# Deploy frontend
+# Deploy frontend (with BACKEND_URL injected at startup by entrypoint script)
 gcloud run deploy "${FRONTEND_SERVICE}" \
   --image="${FRONTEND_IMAGE}" \
   --region="${REGION}" \
@@ -251,16 +257,24 @@ INTERNAL_TOKEN=$(gcloud secrets versions access latest \
 
 if ! gcloud scheduler jobs describe "${SCHEDULER_JOB}" \
     --location="${REGION}" --project="${PROJECT_ID}" &>/dev/null; then
-  gcloud scheduler jobs create http "${SCHEDULER_JOB}" \
-    --location="${REGION}" \
-    --schedule="0 0 * * 1" \
-    --time-zone="Asia/Kolkata" \
-    --uri="${BACKEND_URL}/internal/challenges/rotate" \
-    --http-method=POST \
-    --headers="Authorization=Bearer ${INTERNAL_TOKEN},Content-Type=application/json" \
-    --message-body='{"auth_token":"'"${INTERNAL_TOKEN}"'"}' \
-    --oidc-service-account-email="${SCHEDULER_SA_EMAIL}" \
-    --project="${PROJECT_ID}"
+  # Create temporary flags file to avoid exposing token in process list
+  cat <<EOF > temp_scheduler.yaml
+--location: ${REGION}
+--schedule: "0 0 * * 1"
+--time-zone: "Asia/Kolkata"
+--uri: ${BACKEND_URL}/internal/challenges/rotate
+--http-method: POST
+--headers:
+  Authorization: "Bearer ${INTERNAL_TOKEN}"
+  Content-Type: "application/json"
+--message-body: '{"auth_token":"${INTERNAL_TOKEN}"}'
+--oidc-service-account-email: ${SCHEDULER_SA_EMAIL}
+--project: ${PROJECT_ID}
+EOF
+  chmod 600 temp_scheduler.yaml
+
+  gcloud scheduler jobs create http "${SCHEDULER_JOB}" --flags-file=temp_scheduler.yaml
+  rm -f temp_scheduler.yaml
   success "Cloud Scheduler job created: ${SCHEDULER_JOB}"
 else
   warn "Scheduler job already exists — skipping."
@@ -270,10 +284,60 @@ fi
 # STEP 10 — Seed initial challenges into Firestore
 # ══════════════════════════════════════════════════════════════════════════════
 info "STEP 10 — Seeding challenges via rotation endpoint..."
-curl -sS -X POST "${BACKEND_URL}/internal/challenges/rotate" \
-  -H "Authorization: Bearer ${INTERNAL_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d "{\"auth_token\":\"${INTERNAL_TOKEN}\"}" | python3 -m json.tool || warn "Challenge seed returned non-JSON (may already be seeded)"
+
+info "Waiting for backend service to become healthy..."
+for i in {1..6}; do
+  if curl -sSf "${BACKEND_URL}/health" &>/dev/null; then
+    success "Backend is healthy."
+    break
+  else
+    warn "Backend not ready yet (attempt $i/6) — retrying in 5s..."
+    sleep 5
+  fi
+  if [ $i -eq 6 ]; then
+    fatal "Backend health check failed after 30 seconds."
+  fi
+done
+
+# Create temporary Python script to run seed request securely
+cat <<EOF > temp_seed.py
+import urllib.request
+import json
+import sys
+from google.cloud import secretmanager
+
+backend_url = sys.argv[1]
+project = sys.argv[2]
+
+client = secretmanager.SecretManagerServiceClient()
+name = f"projects/{project}/secrets/ecoquest-internal-token/versions/latest"
+try:
+    response = client.access_secret_version(request={"name": name})
+    token = response.payload.data.decode("utf-8").strip()
+except Exception as e:
+    print(f"Error fetching token from Secret Manager: {e}")
+    sys.exit(1)
+
+req = urllib.request.Request(
+    f"{backend_url}/internal/challenges/rotate",
+    data=json.dumps({"auth_token": token}).encode(),
+    headers={
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    },
+    method="POST"
+)
+try:
+    with urllib.request.urlopen(req) as f:
+        print(f"Seed Response: {f.read().decode()}")
+except Exception as e:
+    print(f"Seed endpoint error: {e}")
+    sys.exit(1)
+EOF
+chmod 600 temp_seed.py
+
+python3 temp_seed.py "${BACKEND_URL}" "${PROJECT_ID}" || warn "Challenge seed failed"
+rm -f temp_seed.py
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STEP 11 — Summary

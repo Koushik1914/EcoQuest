@@ -6,6 +6,7 @@ Never reads secrets directly from env vars in routers.
 from __future__ import annotations
 
 import logging
+import os
 from functools import lru_cache
 from typing import Optional
 
@@ -81,7 +82,7 @@ class Settings(BaseSettings):
 
     def load_secrets(self) -> None:
         """
-        Pull secrets from GCP Secret Manager at application startup.
+        Pull secrets from environment or GCP Secret Manager at application startup.
         Raises RuntimeError if a required secret cannot be fetched.
         """
         client = secretmanager.SecretManagerServiceClient()
@@ -100,11 +101,18 @@ class Settings(BaseSettings):
                 logger.warning("Optional secret '%s' not found: %s", secret_id, exc)
                 return None
 
-        self._gemini_api_key = _fetch("gemini-api-key", required=True)
-        self._internal_auth_token = _fetch(
-            self.internal_auth_token_secret, required=False
-        )
-        logger.info("All secrets loaded from Secret Manager successfully.")
+        # Try env vars first (injected by Cloud Run --set-secrets), fallback to direct API fetch
+        self._gemini_api_key = os.getenv("GEMINI_API_KEY")
+        if not self._gemini_api_key:
+            self._gemini_api_key = _fetch("gemini-api-key", required=True)
+
+        self._internal_auth_token = os.getenv("INTERNAL_AUTH_TOKEN")
+        if not self._internal_auth_token:
+            self._internal_auth_token = _fetch(
+                self.internal_auth_token_secret, required=False
+            )
+
+        logger.info("All secrets resolved successfully.")
 
     @property
     def gemini_api_key(self) -> str:

@@ -5,7 +5,7 @@
  */
 
 // ── Configuration ─────────────────────────────────────────────────────────────
-const BACKEND_URL = window.__ECOQUEST_API__ || 'http://localhost:8080';
+const BACKEND_URL = window.__ECOQUEST_API__ || 'BACKEND_URL_PLACEHOLDER';
 const USER_KEY    = 'ecoquest_user_id';
 const PROFILE_KEY = 'ecoquest_profile';
 
