@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # ── Configuration — edit these before first deploy ───────────────────────────
-PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project 2>/dev/null)}"
+PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-ecoquest2}"
 REGION="${REGION:-asia-south1}"
 FIRESTORE_REGION="${FIRESTORE_REGION:-nam5}"
 AR_REPO="ecoquest-registry"
