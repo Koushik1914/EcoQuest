@@ -1,0 +1,24 @@
+# ── Production Python dependencies for EcoQuest Backend ────────────────────
+# Python 3.11+  |  FastAPI async  |  Firestore  |  Vertex AI  |  GCS
+
+# ── Web framework ─────────────────────────────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+starlette==0.41.3
+
+# ── Data validation ───────────────────────────────────────────────────────────
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# ── GCP SDKs ──────────────────────────────────────────────────────────────────
+google-cloud-firestore==2.19.0
+google-cloud-secret-manager==2.21.0
+google-cloud-storage==2.18.2
+google-auth==2.36.0
+
+# ── Vertex AI ─────────────────────────────────────────────────────────────────
+google-cloud-aiplatform==1.74.0
+vertexai==1.74.0
+
+# ── HTTP client (used by GCP SDKs internally) ─────────────────────────────────
+httpx==0.27.2

@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="EcoQuest — Track your carbon footprint, complete eco-challenges, and collaborate with your community to fight climate change." />
+  <meta name="theme-color" content="#16a34a" />
+  <title>EcoQuest — Carbon Footprint Tracker</title>
+
+  <!-- Preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
+
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <!-- Skip to content for screen readers -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- Toast notification container -->
+  <div id="toast-container" role="status" aria-live="polite" aria-atomic="false" class="toast-container"></div>
+
+  <!-- ── Top Navigation ─────────────────────────────────────────────────── -->
+  <header class="topnav" role="banner">
+    <div class="topnav__inner">
+      <a href="#dashboard" class="topnav__brand" aria-label="EcoQuest home">
+        <span class="topnav__logo" aria-hidden="true">🌍</span>
+        <span class="topnav__name">EcoQuest</span>
+      </a>
+
+      <nav class="topnav__links" role="navigation" aria-label="Main navigation">
+        <a href="#dashboard" class="nav-link" id="nav-dashboard" aria-current="page">Dashboard</a>
+        <a href="#quiz"      class="nav-link" id="nav-quiz">Carbon Quiz</a>
+        <a href="#challenges" class="nav-link" id="nav-challenges">Challenges</a>
+        <a href="#chat"      class="nav-link" id="nav-chat">EcoBuddy AI</a>
+        <a href="community.html" class="nav-link">Community</a>
+      </nav>
+
+      <div class="topnav__user" id="user-badge" aria-label="User profile">
+        <span class="user-avatar" id="user-avatar" aria-hidden="true">🌱</span>
+        <span class="user-points" id="user-points">0 pts</span>
+        <span class="streak-badge" id="streak-badge" title="Current streak" aria-label="Streak">🔥 0</span>
+      </div>
+
+      <button class="topnav__menu-btn" id="menu-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-nav">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <!-- Mobile nav -->
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation" hidden>
+      <a href="#dashboard"  class="mobile-nav__link">📊 Dashboard</a>
+      <a href="#quiz"       class="mobile-nav__link">🌿 Carbon Quiz</a>
+      <a href="#challenges" class="mobile-nav__link">⚡ Challenges</a>
+      <a href="#chat"       class="mobile-nav__link">🤖 EcoBuddy AI</a>
+      <a href="community.html" class="mobile-nav__link">👥 Community</a>
+    </nav>
+  </header>
+
+  <!-- ── Main SPA Shell ─────────────────────────────────────────────────── -->
+  <main id="main-content">
+
+    <!-- ── VIEW: Dashboard ──────────────────────────────────────────────── -->
+    <section id="view-dashboard" class="view" role="main" aria-label="Dashboard">
+
+      <div class="page-header">
+        <h1 class="page-title">Your Eco Dashboard</h1>
+        <p class="page-subtitle" id="dashboard-greeting">Welcome back! Here's your impact today.</p>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="stats-grid" role="list" aria-label="Your carbon statistics">
+
+        <article class="stat-card stat-card--primary" role="listitem" aria-labelledby="stat-footprint-label">
+          <div class="stat-card__icon" aria-hidden="true">🌍</div>
+          <div class="stat-card__body">
+            <div class="stat-card__value" id="stat-footprint">--</div>
+            <div class="stat-card__label" id="stat-footprint-label">kg CO₂ / month</div>
+          </div>
+          <div class="stat-card__badge" id="stat-rating-badge" aria-label="Rating">--</div>
+        </article>
+
+        <article class="stat-card" role="listitem" aria-labelledby="stat-reduction-label">
+          <div class="stat-card__icon" aria-hidden="true">📉</div>
+          <div class="stat-card__body">
+            <div class="stat-card__value stat-card__value--positive" id="stat-reduction">--%</div>
+            <div class="stat-card__label" id="stat-reduction-label">Reduction vs baseline</div>
+          </div>
+        </article>
+
+        <article class="stat-card" role="listitem" aria-labelledby="stat-challenges-label">
+          <div class="stat-card__icon" aria-hidden="true">⚡</div>
+          <div class="stat-card__body">
+            <div class="stat-card__value" id="stat-challenges-week">0</div>
+            <div class="stat-card__label" id="stat-challenges-label">Challenges this week</div>
+          </div>
+        </article>
+
+        <article class="stat-card" role="listitem" aria-labelledby="stat-streak-label">
+          <div class="stat-card__icon" aria-hidden="true">🔥</div>
+          <div class="stat-card__body">
+            <div class="stat-card__value" id="stat-streak">0</div>
+            <div class="stat-card__label" id="stat-streak-label">Day streak</div>
+          </div>
+        </article>
+
+        <article class="stat-card" role="listitem" aria-labelledby="stat-co2-saved-label">
+          <div class="stat-card__icon" aria-hidden="true">💚</div>
+          <div class="stat-card__body">
+            <div class="stat-card__value" id="stat-co2-saved">0 kg</div>
+            <div class="stat-card__label" id="stat-co2-saved-label">Total CO₂ saved</div>
+          </div>
+        </article>
+
+        <article class="stat-card" role="listitem" aria-labelledby="stat-rank-label">
+          <div class="stat-card__icon" aria-hidden="true">🏅</div>
+          <div class="stat-card__body">
+            <div class="stat-card__value" id="stat-rank-tier">Seedling 🌱</div>
+            <div class="stat-card__label" id="stat-rank-label">Rank tier</div>
+          </div>
+        </article>
+
+      </div>
+
+      <!-- Charts Row -->
+      <div class="charts-row">
+        <div class="chart-card">
+          <h2 class="chart-card__title">Emission Breakdown</h2>
+          <div class="chart-card__canvas-wrap">
+            <canvas id="donut-chart" role="img" aria-label="Donut chart showing carbon emission breakdown by category"></canvas>
+          </div>
+          <div class="chart-card__legend" id="donut-legend" aria-hidden="true"></div>
+        </div>
+
+        <div class="chart-card">
+          <h2 class="chart-card__title">6-Month Trend</h2>
+          <div class="chart-card__canvas-wrap">
+            <canvas id="trend-chart" role="img" aria-label="Line chart showing monthly carbon footprint trend over 6 months"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recommendations -->
+      <section class="recs-section" aria-labelledby="recs-heading">
+        <h2 class="section-title" id="recs-heading">💡 Personalised Recommendations</h2>
+        <div class="recs-grid" id="recs-grid" aria-live="polite">
+          <!-- Skeleton placeholders -->
+          <div class="rec-card skeleton" aria-hidden="true"></div>
+          <div class="rec-card skeleton" aria-hidden="true"></div>
+          <div class="rec-card skeleton" aria-hidden="true"></div>
+        </div>
+      </section>
+
+      <!-- Empty state: no quiz taken yet -->
+      <div class="empty-state" id="dashboard-empty" hidden>
+        <div class="empty-state__icon" aria-hidden="true">🌱</div>
+        <h2 class="empty-state__title">Start your eco journey</h2>
+        <p class="empty-state__desc">Take the 2-minute Carbon Quiz to see your personal dashboard.</p>
+        <a href="#quiz" class="btn btn--primary" id="start-quiz-cta">Take the Quiz →</a>
+      </div>
+
+    </section>
+
+    <!-- ── VIEW: Carbon Quiz ─────────────────────────────────────────────── -->
+    <section id="view-quiz" class="view" role="main" aria-label="Carbon footprint quiz" hidden>
+
+      <div class="page-header">
+        <h1 class="page-title">🌿 Carbon Footprint Quiz</h1>
+        <p class="page-subtitle">5 quick questions to calculate your monthly CO₂ footprint.</p>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="quiz-progress" role="group" aria-label="Quiz progress">
+        <div class="quiz-progress__bar-wrap">
+          <div class="quiz-progress__bar" id="quiz-progress-bar" role="progressbar"
+               aria-valuenow="1" aria-valuemin="1" aria-valuemax="5"
+               aria-label="Step 1 of 5" style="width:20%"></div>
+        </div>
+        <div class="quiz-progress__steps" aria-hidden="true">
+          <span class="step-dot active" data-step="1">1</span>
+          <span class="step-dot" data-step="2">2</span>
+          <span class="step-dot" data-step="3">3</span>
+          <span class="step-dot" data-step="4">4</span>
+          <span class="step-dot" data-step="5">5</span>
+        </div>
+      </div>
+
+      <form class="quiz-form" id="quiz-form" novalidate aria-label="Carbon footprint quiz form">
+
+        <!-- Step 1: Transport -->
+        <fieldset class="quiz-step" id="quiz-step-1" data-step="1">
+          <legend class="quiz-step__legend">
+            <span class="quiz-step__num" aria-hidden="true">Step 1 of 5</span>
+            🚗 How do you get around?
+          </legend>
+
+          <div class="form-group">
+            <label for="transport-mode" class="form-label">Primary transport mode</label>
+            <select id="transport-mode" name="transport_mode" class="form-select" required
+                    aria-describedby="transport-mode-hint">
+              <option value="">Select your mode…</option>
+              <option value="car_petrol">🚗 Petrol / CNG Car</option>
+              <option value="car_diesel">🚙 Diesel Car</option>
+              <option value="car_ev">⚡ Electric Vehicle</option>
+              <option value="public_transport">🚌 Bus / Metro / Train</option>
+              <option value="bike">🚲 Bicycle</option>
+              <option value="walk">🚶 Walk</option>
+              <option value="wfh">🏠 Work from Home</option>
+            </select>
+            <div id="transport-mode-hint" class="form-hint">Choose the mode you use most often.</div>
+            <div class="form-error" id="transport-mode-error" role="alert" hidden></div>
+          </div>
+
+          <div class="form-group" id="km-group">
+            <label for="weekly-km" class="form-label">Weekly kilometres travelled</label>
+            <input type="number" id="weekly-km" name="weekly_km"
+                   class="form-input" min="0" max="2000" step="1"
+                   placeholder="e.g. 80" aria-describedby="weekly-km-hint"
+                   inputmode="numeric" />
+            <div id="weekly-km-hint" class="form-hint">Enter 0 if you work from home or walk everywhere.</div>
+            <div class="form-error" id="weekly-km-error" role="alert" hidden></div>
+          </div>
+        </fieldset>
+
+        <!-- Step 2: Diet -->
+        <fieldset class="quiz-step" id="quiz-step-2" data-step="2" hidden>
+          <legend class="quiz-step__legend">
+            <span class="quiz-step__num" aria-hidden="true">Step 2 of 5</span>
+            🥗 What's your diet like?
+          </legend>
+
+          <div class="form-group">
+            <label class="form-label">How often do you eat meat?</label>
+            <div class="radio-group" role="radiogroup" aria-required="true">
+              <label class="radio-card">
+                <input type="radio" name="meat_frequency" value="daily" aria-label="Daily meat consumption" />
+                <span class="radio-card__icon" aria-hidden="true">🥩</span>
+                <span class="radio-card__label">Daily</span>
+                <span class="radio-card__desc">Most meals include meat</span>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="meat_frequency" value="few_times" aria-label="A few times per week" />
+                <span class="radio-card__icon" aria-hidden="true">🍗</span>
+                <span class="radio-card__label">Few Times/Week</span>
+                <span class="radio-card__desc">3–4 times per week</span>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="meat_frequency" value="rarely" aria-label="Rarely eat meat" />
+                <span class="radio-card__icon" aria-hidden="true">🌮</span>
+                <span class="radio-card__label">Rarely</span>
+                <span class="radio-card__desc">1–2 times per week</span>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="meat_frequency" value="never" aria-label="Vegetarian or vegan" />
+                <span class="radio-card__icon" aria-hidden="true">🥦</span>
+                <span class="radio-card__label">Never</span>
+                <span class="radio-card__desc">Vegetarian / Vegan</span>
+              </label>
+            </div>
+            <div class="form-error" id="diet-error" role="alert" hidden></div>
+          </div>
+        </fieldset>
+
+        <!-- Step 3: Energy -->
+        <fieldset class="quiz-step" id="quiz-step-3" data-step="3" hidden>
+          <legend class="quiz-step__legend">
+            <span class="quiz-step__num" aria-hidden="true">Step 3 of 5</span>
+            ⚡ Home energy usage
+          </legend>
+
+          <div class="form-group">
+            <label class="form-label">Your average monthly electricity bill (₹)</label>
+            <div class="radio-group" role="radiogroup" aria-required="true">
+              <label class="radio-card">
+                <input type="radio" name="energy_bill" value="lt_500" aria-label="Less than 500 rupees" />
+                <span class="radio-card__icon" aria-hidden="true">💡</span>
+                <span class="radio-card__label">Under ₹500</span>
+                <span class="radio-card__desc">~12 kg CO₂/month</span>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="energy_bill" value="500_1500" aria-label="500 to 1500 rupees" />
+                <span class="radio-card__icon" aria-hidden="true">🔌</span>
+                <span class="radio-card__label">₹500 – ₹1,500</span>
+                <span class="radio-card__desc">~32 kg CO₂/month</span>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="energy_bill" value="1500_3000" aria-label="1500 to 3000 rupees" />
+                <span class="radio-card__icon" aria-hidden="true">🏠</span>
+                <span class="radio-card__label">₹1,500 – ₹3,000</span>
+                <span class="radio-card__desc">~62 kg CO₂/month</span>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="energy_bill" value="gt_3000" aria-label="More than 3000 rupees" />
+                <span class="radio-card__icon" aria-hidden="true">🌡️</span>
+                <span class="radio-card__label">Over ₹3,000</span>
+                <span class="radio-card__desc">~98 kg CO₂/month</span>
+              </label>
+            </div>
+            <div class="form-error" id="energy-error" role="alert" hidden></div>
+          </div>
+        </fieldset>
+
+        <!-- Step 4: Lifestyle -->
+        <fieldset class="quiz-step" id="quiz-step-4" data-step="4" hidden>
+          <legend class="quiz-step__legend">
+            <span class="quiz-step__num" aria-hidden="true">Step 4 of 5</span>
+            ♻️ Lifestyle habits
+          </legend>
+
+          <div class="form-group">
+            <label for="recycling" class="form-label">How often do you recycle?</label>
+            <select id="recycling" name="recycling" class="form-select" required>
+              <option value="">Select…</option>
+              <option value="always">♻️ Always</option>
+              <option value="sometimes">🤔 Sometimes</option>
+              <option value="never">❌ Never</option>
+            </select>
+            <div class="form-error" id="recycling-error" role="alert" hidden></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Shopping frequency</label>
+            <div class="radio-group" role="radiogroup" aria-required="true">
+              <label class="radio-card">
+                <input type="radio" name="shopping_frequency" value="weekly" aria-label="Weekly shopping" />
+                <span class="radio-card__icon" aria-hidden="true">🛍️</span>
+                <span class="radio-card__label">Weekly</span>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="shopping_frequency" value="monthly" aria-label="Monthly shopping" />
+                <span class="radio-card__icon" aria-hidden="true">📦</span>
+                <span class="radio-card__label">Monthly</span>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="shopping_frequency" value="rarely" aria-label="Rarely shop" />
+                <span class="radio-card__icon" aria-hidden="true">🌿</span>
+                <span class="radio-card__label">Rarely</span>
+              </label>
+            </div>
+            <div class="form-error" id="shopping-error" role="alert" hidden></div>
+          </div>
+        </fieldset>
+
+        <!-- Step 5: Profile -->
+        <fieldset class="quiz-step" id="quiz-step-5" data-step="5" hidden>
+          <legend class="quiz-step__legend">
+            <span class="quiz-step__num" aria-hidden="true">Step 5 of 5</span>
+            👤 About you
+          </legend>
+
+          <div class="form-group">
+            <label for="display-name" class="form-label">Your display name</label>
+            <input type="text" id="display-name" name="display_name"
+                   class="form-input" minlength="1" maxlength="80" required
+                   placeholder="e.g. Priya S." aria-describedby="name-hint" />
+            <div id="name-hint" class="form-hint">This appears on the leaderboard.</div>
+            <div class="form-error" id="name-error" role="alert" hidden></div>
+          </div>
+
+          <div class="form-group">
+            <label for="user-type" class="form-label">I am a…</label>
+            <select id="user-type" name="user_type" class="form-select" required>
+              <option value="">Select…</option>
+              <option value="student">🎓 Student</option>
+              <option value="professional">💼 Professional</option>
+              <option value="family">👨‍👩‍👧 Family</option>
+            </select>
+            <div class="form-error" id="user-type-error" role="alert" hidden></div>
+          </div>
+
+          <div class="form-group">
+            <label for="city" class="form-label">Your city</label>
+            <input type="text" id="city" name="city"
+                   class="form-input" minlength="2" maxlength="100" required
+                   placeholder="e.g. Bengaluru" />
+            <div class="form-error" id="city-error" role="alert" hidden></div>
+          </div>
+        </fieldset>
+
+        <!-- Navigation buttons -->
+        <div class="quiz-nav" role="group" aria-label="Quiz navigation">
+          <button type="button" class="btn btn--ghost" id="quiz-prev-btn" disabled
+                  aria-label="Go to previous step">← Back</button>
+          <button type="button" class="btn btn--primary" id="quiz-next-btn"
+                  aria-label="Go to next step">Next →</button>
+          <button type="submit" class="btn btn--success" id="quiz-submit-btn" hidden
+                  aria-label="Submit quiz and calculate footprint">
+            <span class="btn__spinner" aria-hidden="true"></span>
+            Calculate My Footprint 🌍
+          </button>
+        </div>
+      </form>
+
+    </section>
+
+    <!-- ── VIEW: Challenges ──────────────────────────────────────────────── -->
+    <section id="view-challenges" class="view" role="main" aria-label="Eco challenges" hidden>
+
+      <div class="page-header">
+        <h1 class="page-title">⚡ Eco Challenges</h1>
+        <p class="page-subtitle">Complete challenges to earn points and track your CO₂ savings.</p>
+      </div>
+
+      <!-- Streak banner -->
+      <div class="streak-banner" id="streak-banner" role="status" aria-live="polite">
+        <span aria-hidden="true">🔥</span>
+        <strong id="streak-count">0</strong> day streak —
+        <span id="streak-msg">Complete a challenge today to start your streak!</span>
+      </div>
+
+      <!-- Filter tabs -->
+      <div class="filter-tabs" role="tablist" aria-label="Filter challenges by category">
+        <button class="filter-tab active" role="tab" aria-selected="true"
+                data-filter="all" id="filter-all" aria-controls="challenges-list">All</button>
+        <button class="filter-tab" role="tab" aria-selected="false"
+                data-filter="transport" id="filter-transport">🚗 Transport</button>
+        <button class="filter-tab" role="tab" aria-selected="false"
+                data-filter="food" id="filter-food">🥗 Food</button>
+        <button class="filter-tab" role="tab" aria-selected="false"
+                data-filter="energy" id="filter-energy">⚡ Energy</button>
+        <button class="filter-tab" role="tab" aria-selected="false"
+                data-filter="shopping" id="filter-shopping">🛍️ Shopping</button>
+        <button class="filter-tab" role="tab" aria-selected="false"
+                data-filter="lifestyle" id="filter-lifestyle">🌿 Lifestyle</button>
+      </div>
+
+      <!-- Challenges grid -->
+      <div class="challenges-grid" id="challenges-list" role="tabpanel" aria-labelledby="filter-all">
+        <!-- Populated by JS -->
+        <div class="challenge-card skeleton" aria-hidden="true"></div>
+        <div class="challenge-card skeleton" aria-hidden="true"></div>
+        <div class="challenge-card skeleton" aria-hidden="true"></div>
+      </div>
+
+    </section>
+
+    <!-- ── VIEW: EcoBuddy AI Chat ────────────────────────────────────────── -->
+    <section id="view-chat" class="view" role="main" aria-label="EcoBuddy AI chat" hidden>
+
+      <div class="page-header">
+        <h1 class="page-title">🤖 EcoBuddy AI</h1>
+        <p class="page-subtitle">Your personal sustainability coach, powered by Gemini 2.5 Flash.</p>
+      </div>
+
+      <div class="chat-container">
+
+        <!-- Chat messages -->
+        <div class="chat-messages" id="chat-messages" role="log" aria-live="polite" aria-label="Chat conversation">
+          <div class="chat-message chat-message--assistant">
+            <div class="chat-message__avatar" aria-hidden="true">🌿</div>
+            <div class="chat-message__bubble">
+              <p>Hi! I'm EcoBuddy, your personal sustainability coach. 🌍</p>
+              <p>I can help you reduce your carbon footprint with tips tailored just for you. What would you like to know?</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick prompt chips -->
+        <div class="chat-chips" role="group" aria-label="Quick prompt suggestions">
+          <button class="chip" data-prompt="Reduce my footprint as a college student"
+                  aria-label="Ask: Reduce my footprint as a college student">
+            🎓 For students
+          </button>
+          <button class="chip" data-prompt="Easiest action I can start today"
+                  aria-label="Ask: Easiest action I can start today">
+            ✅ Easy wins
+          </button>
+          <button class="chip" data-prompt="How much CO₂ does flying emit?"
+                  aria-label="Ask: How much CO₂ does flying emit">
+            ✈️ Flying impact
+          </button>
+          <button class="chip" data-prompt="Sustainable eating tips for India"
+                  aria-label="Ask: Sustainable eating tips for India">
+            🥗 India food tips
+          </button>
+          <button class="chip" data-prompt="Explain my dashboard numbers"
+                  aria-label="Ask: Explain my dashboard numbers">
+            📊 My numbers
+          </button>
+        </div>
+
+        <!-- Input area -->
+        <form class="chat-input-form" id="chat-input-form" aria-label="Chat input">
+          <label for="chat-input" class="sr-only">Type your message</label>
+          <input type="text" id="chat-input" class="chat-input"
+                 placeholder="Ask EcoBuddy anything…"
+                 maxlength="1000"
+                 aria-describedby="chat-input-hint"
+                 autocomplete="off" />
+          <div id="chat-input-hint" class="sr-only">Press Enter or click Send to send your message.</div>
+          <button type="submit" class="btn btn--primary chat-send-btn" id="chat-send-btn"
+                  aria-label="Send message">
+            Send 🌿
+          </button>
+        </form>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="site-footer__inner">
+      <p>🌍 EcoQuest — Powered by Google Cloud &amp; Vertex AI Gemini 2.5 Flash</p>
+      <p class="site-footer__muted">Emission factors sourced from IPCC AR6 + India MoEFCC NIR 2023</p>
+    </div>
+  </footer>
+
+  <!-- JS modules (defer for performance) -->
+  <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>

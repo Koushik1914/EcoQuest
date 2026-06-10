@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="EcoQuest Community — Share eco actions, join clubs, and see the leaderboard of climate champions." />
+  <meta name="theme-color" content="#16a34a" />
+  <title>EcoQuest — Community &amp; Leaderboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <div id="toast-container" role="status" aria-live="polite" aria-atomic="false" class="toast-container"></div>
+
+  <!-- Navigation -->
+  <header class="topnav" role="banner">
+    <div class="topnav__inner">
+      <a href="index.html" class="topnav__brand" aria-label="EcoQuest home">
+        <span class="topnav__logo" aria-hidden="true">🌍</span>
+        <span class="topnav__name">EcoQuest</span>
+      </a>
+
+      <nav class="topnav__links" role="navigation" aria-label="Main navigation">
+        <a href="index.html#dashboard" class="nav-link">Dashboard</a>
+        <a href="index.html#quiz"      class="nav-link">Carbon Quiz</a>
+        <a href="index.html#challenges" class="nav-link">Challenges</a>
+        <a href="index.html#chat"      class="nav-link">EcoBuddy AI</a>
+        <a href="community.html"       class="nav-link" aria-current="page">Community</a>
+      </nav>
+
+      <div class="topnav__user" id="user-badge" aria-label="User profile">
+        <span class="user-avatar" id="user-avatar" aria-hidden="true">🌱</span>
+        <span class="user-points" id="user-points">0 pts</span>
+        <span class="streak-badge" id="streak-badge" title="Current streak" aria-label="Streak">🔥 0</span>
+      </div>
+
+      <button class="topnav__menu-btn" id="menu-btn" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-nav">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation" hidden>
+      <a href="index.html#dashboard"  class="mobile-nav__link">📊 Dashboard</a>
+      <a href="index.html#quiz"       class="mobile-nav__link">🌿 Carbon Quiz</a>
+      <a href="index.html#challenges" class="mobile-nav__link">⚡ Challenges</a>
+      <a href="index.html#chat"       class="mobile-nav__link">🤖 EcoBuddy AI</a>
+      <a href="community.html"        class="mobile-nav__link">👥 Community</a>
+    </nav>
+  </header>
+
+  <main id="main-content">
+
+    <!-- ── Page Tabs ──────────────────────────────────────────────────────── -->
+    <div class="page-tabs" role="tablist" aria-label="Community sections">
+      <button class="page-tab active" role="tab" aria-selected="true" id="tab-feed" aria-controls="panel-feed">
+        🌿 Feed
+      </button>
+      <button class="page-tab" role="tab" aria-selected="false" id="tab-leaderboard" aria-controls="panel-leaderboard">
+        🏆 Leaderboard
+      </button>
+      <button class="page-tab" role="tab" aria-selected="false" id="tab-clubs" aria-controls="panel-clubs">
+        👥 Eco Clubs
+      </button>
+    </div>
+
+    <!-- ── Panel: Community Feed ─────────────────────────────────────────── -->
+    <section id="panel-feed" role="tabpanel" aria-labelledby="tab-feed" class="community-panel">
+
+      <div class="feed-header">
+        <h1 class="page-title">Community Feed</h1>
+        <button class="btn btn--primary" id="create-post-btn" aria-label="Create a new post">
+          + Share Action
+        </button>
+      </div>
+
+      <!-- Category filter -->
+      <div class="filter-tabs" role="tablist" aria-label="Filter feed by category">
+        <button class="filter-tab active" role="tab" data-filter="all" aria-selected="true" id="feed-filter-all">All</button>
+        <button class="filter-tab" role="tab" data-filter="transport"  aria-selected="false" id="feed-filter-transport">🚗 Transport</button>
+        <button class="filter-tab" role="tab" data-filter="food"       aria-selected="false" id="feed-filter-food">🥗 Food</button>
+        <button class="filter-tab" role="tab" data-filter="energy"     aria-selected="false" id="feed-filter-energy">⚡ Energy</button>
+        <button class="filter-tab" role="tab" data-filter="shopping"   aria-selected="false" id="feed-filter-shopping">🛍️ Shopping</button>
+        <button class="filter-tab" role="tab" data-filter="lifestyle"  aria-selected="false" id="feed-filter-lifestyle">🌿 Lifestyle</button>
+      </div>
+
+      <!-- Post feed -->
+      <div class="post-feed" id="post-feed" role="feed" aria-label="Community posts" aria-busy="true">
+        <article class="post-card skeleton" aria-hidden="true"></article>
+        <article class="post-card skeleton" aria-hidden="true"></article>
+        <article class="post-card skeleton" aria-hidden="true"></article>
+      </div>
+
+      <div class="feed-actions">
+        <button class="btn btn--ghost" id="load-more-btn" aria-label="Load more posts" hidden>
+          Load more posts
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ── Panel: Leaderboard ────────────────────────────────────────────── -->
+    <section id="panel-leaderboard" role="tabpanel" aria-labelledby="tab-leaderboard" class="community-panel" hidden>
+
+      <h1 class="page-title">🏆 Leaderboard</h1>
+      <p class="page-subtitle">Ranked by improvement + actions — not raw footprint. Everyone has a fair shot.</p>
+
+      <!-- Sub-tabs: Individual / Clubs -->
+      <div class="sub-tabs" role="tablist" aria-label="Leaderboard type">
+        <button class="sub-tab active" role="tab" aria-selected="true"
+                id="lb-tab-individual" aria-controls="lb-panel-individual">Individual</button>
+        <button class="sub-tab" role="tab" aria-selected="false"
+                id="lb-tab-clubs" aria-controls="lb-panel-clubs">Clubs</button>
+      </div>
+
+      <!-- Individual leaderboard -->
+      <div id="lb-panel-individual" role="tabpanel" aria-labelledby="lb-tab-individual">
+        <table class="leaderboard-table" aria-label="Individual leaderboard">
+          <thead>
+            <tr>
+              <th scope="col">Rank</th>
+              <th scope="col">User</th>
+              <th scope="col">City</th>
+              <th scope="col">Tier</th>
+              <th scope="col">Improvement</th>
+              <th scope="col">Points</th>
+              <th scope="col">Score</th>
+            </tr>
+          </thead>
+          <tbody id="lb-individual-body" aria-live="polite">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Club leaderboard -->
+      <div id="lb-panel-clubs" role="tabpanel" aria-labelledby="lb-tab-clubs" hidden>
+        <table class="leaderboard-table" aria-label="Club leaderboard">
+          <thead>
+            <tr>
+              <th scope="col">Rank</th>
+              <th scope="col">Club</th>
+              <th scope="col">Type</th>
+              <th scope="col">Members</th>
+              <th scope="col">CO₂ Saved</th>
+              <th scope="col">Points</th>
+              <th scope="col">Score</th>
+            </tr>
+          </thead>
+          <tbody id="lb-clubs-body" aria-live="polite">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+    </section>
+
+    <!-- ── Panel: Eco Clubs ──────────────────────────────────────────────── -->
+    <section id="panel-clubs" role="tabpanel" aria-labelledby="tab-clubs" class="community-panel" hidden>
+
+      <h1 class="page-title">👥 Eco Clubs</h1>
+      <p class="page-subtitle">Join a college, office, or city club to build collective impact.</p>
+
+      <div class="clubs-grid" id="clubs-grid" aria-live="polite" aria-label="Available eco clubs">
+        <div class="club-card skeleton" aria-hidden="true"></div>
+        <div class="club-card skeleton" aria-hidden="true"></div>
+        <div class="club-card skeleton" aria-hidden="true"></div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ── Create Post Modal ──────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="post-modal-overlay" role="dialog"
+       aria-modal="true" aria-labelledby="post-modal-title" hidden>
+    <div class="modal">
+      <div class="modal__header">
+        <h2 class="modal__title" id="post-modal-title">Share Your Eco Action 🌿</h2>
+        <button class="modal__close" id="post-modal-close" aria-label="Close dialog">✕</button>
+      </div>
+
+      <form class="modal__form" id="post-form" novalidate aria-label="Create post form">
+
+        <div class="form-group">
+          <label for="post-action-type" class="form-label">Action type</label>
+          <select id="post-action-type" name="action_type" class="form-select" required>
+            <option value="">Select an action…</option>
+            <option value="transport">🚗 Transport</option>
+            <option value="food">🥗 Food</option>
+            <option value="energy">⚡ Energy</option>
+            <option value="shopping">🛍️ Shopping</option>
+            <option value="lifestyle">🌿 Lifestyle</option>
+          </select>
+          <div class="form-error" id="post-action-error" role="alert" hidden></div>
+        </div>
+
+        <div class="form-group">
+          <label for="post-note" class="form-label">What did you do?</label>
+          <textarea id="post-note" name="note" class="form-textarea"
+                    minlength="5" maxlength="500" required
+                    placeholder="e.g. Cycled to work instead of driving today!"
+                    aria-describedby="post-note-count"></textarea>
+          <div id="post-note-count" class="form-hint"><span id="note-chars">0</span>/500</div>
+          <div class="form-error" id="post-note-error" role="alert" hidden></div>
+        </div>
+
+        <div class="form-group">
+          <label for="post-image" class="form-label">Photo (optional)</label>
+          <input type="file" id="post-image" name="image"
+                 accept="image/jpeg,image/png,image/webp"
+                 class="form-file"
+                 aria-describedby="post-image-hint" />
+          <div id="post-image-hint" class="form-hint">JPEG, PNG or WebP — max 5 MB</div>
+          <div class="form-error" id="post-image-error" role="alert" hidden></div>
+          <div class="image-preview" id="image-preview" hidden>
+            <img id="image-preview-img" src="" alt="Preview of selected image" />
+            <button type="button" class="image-preview__remove" id="remove-image" aria-label="Remove selected image">✕</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="post-club-tag" class="form-label">Club tag (optional)</label>
+          <input type="text" id="post-club-tag" name="club_tag"
+                 class="form-input" maxlength="60"
+                 placeholder="e.g. IIT Delhi Green Cell" />
+        </div>
+
+        <div class="modal__actions">
+          <button type="button" class="btn btn--ghost" id="post-cancel-btn">Cancel</button>
+          <button type="submit" class="btn btn--primary" id="post-submit-btn">
+            <span class="btn__spinner" aria-hidden="true"></span>
+            Share Action 🌿
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="site-footer__inner">
+      <p>🌍 EcoQuest — Powered by Google Cloud &amp; Vertex AI Gemini 2.5 Flash</p>
+      <p class="site-footer__muted">Emission factors sourced from IPCC AR6 + India MoEFCC NIR 2023</p>
+    </div>
+  </footer>
+
+  <script type="module" src="assets/js/app.js"></script>
+  <script type="module" src="assets/js/community.js"></script>
+  <script type="module" src="assets/js/leaderboard.js"></script>
+  <script type="module" src="assets/js/clubs.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+*.env.*
+!.env.example
+
+# Node (not used, but safety)
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# GCP credentials (NEVER commit)
+*.json
+!firestore.indexes.json
+!cloudbuild.yaml
+service-account*.json
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+playwright-report/
+test-results/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.log
