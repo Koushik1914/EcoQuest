@@ -130,8 +130,8 @@ async def complete_challenge(
     db = get_firestore()
     uc_ref = (
         db.collection(Collections.USER_CHALLENGES)
-        .where(field="user_id", op_string="==", value=payload.user_id)
-        .where(field="challenge_id", op_string="==", value=challenge_id)
+        .where("user_id", "==", payload.user_id)
+        .where("challenge_id", "==", challenge_id)
     )
     completions = [snap.to_dict() async for snap in uc_ref.stream()]
     completion_dates: list[datetime] = [
@@ -242,7 +242,7 @@ async def rotate_challenges(
     db = get_firestore()
     active_snaps = [
         snap async for snap in db.collection(Collections.CHALLENGES)
-        .where(field="is_active", op_string="==", value=True)
+        .where("is_active", "==", True)
         .stream()
     ]
     deactivate_ops = [

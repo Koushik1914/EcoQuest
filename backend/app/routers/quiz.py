@@ -178,7 +178,7 @@ async def get_quiz_result(user_id: str, request: Request) -> QuizResult:
     db = get_firestore()
     snapshots_ref = (
         db.collection(Collections.FOOTPRINT_SNAPSHOTS)
-        .where(field="user_id", op_string="==", value=user_id)
+        .where("user_id", "==", user_id)
         .order_by("calculated_at", direction="DESCENDING")
         .limit(1)
     )

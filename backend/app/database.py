@@ -180,7 +180,7 @@ async def paginated_query(
 
     if filters:
         for field, op, value in filters:
-            query = query.where(field=field, op_string=op, value=value)
+            query = query.where(field, op, value)
 
     if order_by:
         direction = "DESCENDING" if descending else "ASCENDING"
